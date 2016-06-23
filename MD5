@@ -1,0 +1,13 @@
+314953816dbc27a0cafe1a77853facc7 *DESCRIPTION
+87f77a5df3d15e9a6beb6d6508b5b1db *NAMESPACE
+d8e38ab67cc6aca3a67ecaa45d33c411 *R/APBinary.R
+10ba0ecde58ca34aa8d7a21a5fec4225 *R/APSurv.R
+0ba46affbf7daa66af8748d8e4bc1894 *R/APtools.R
+0fe341f5ac12252c9cc2608b9d29a844 *R/CompareAP.R
+025fa4658492b36458361a1acd6b4b43 *R/sum.I.R
+6a44733659a0df704dedd00b6ec31995 *data/mayo.RData
+2cf625dc7f3c3842009890fbae6d22aa *man/APBinary.Rd
+bd48caf6d23464af041babc481d1b0d6 *man/APSurv.Rd
+eceefe97474891b8cf343086f2c5b274 *man/APtools.Rd
+90829ec7aa93ad15708ca73ee12ebf55 *man/CompareAP.Rd
+dd0391b49911d4d84bff5136581d4a1a *man/mayo.Rd
