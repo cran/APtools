@@ -2,8 +2,8 @@ Package: APtools
 Type: Package
 Title: Average Positive Predictive Values (AP) for Binary Outcomes and
         Censored Event Times
-Version: 2.0
-Date: 2016-06-22
+Version: 3.0
+Date: 2016-08-03
 Depends: survival, graphics, stats, utils
 Author: Hengrui Cai <hengruicai@gmail.com>, Yan Yuan <yyuan@ualberta.ca>, Qian
     Michelle Zhou <qz70@msstate.edu>, Bingying Li<dorisli1120@gmail.com>
@@ -22,6 +22,6 @@ License: LGPL-3
 Collate: 'APBinary.R' 'APtools.R' 'CompareAP.R' 'sum.I.R' 'APSurv.R'
 RoxygenNote: 5.0.1
 NeedsCompilation: no
-Packaged: 2016-06-22 16:07:00 UTC; hc
+Packaged: 2016-08-05 17:19:10 UTC; hc
 Repository: CRAN
-Date/Publication: 2016-06-23 01:29:04
+Date/Publication: 2016-08-05 22:49:06

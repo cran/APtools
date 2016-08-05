@@ -2,7 +2,7 @@
 #' @importFrom stats quantile
 #' @importFrom utils write.csv
 #' @export APBinary
-APBinary <- function(status,marker,cut.values=NULL,method="bootstrap",alpha=0.95,B=1000)
+APBinary <- function(status,marker,cut.values=NULL,method="none",alpha=0.95,B=1000)
 {	
 	############Checking the Formation############
 	
@@ -18,15 +18,35 @@ APBinary <- function(status,marker,cut.values=NULL,method="bootstrap",alpha=0.95
 	dk=status;zk=marker
 	############Set Cut-Off Value############
 	if(!is.null(cut.values)){
-		scl=cut.values
-		PPV=TPF=array(0,dim=c(length(scl),2))
-		PPV[,1]=TPF[,1]=scl
-		St0.Fcl = sum.I(scl,">=",zk,1*(dk==0)*vk)/sum(vk) 
-		Ft0.Fcl = sum.I(scl,">=",zk,1*(dk==1)*vk)/sum(vk) ## hh
-		Fcl = sum.I(scl,">=",zk)/nn # ss	  
-		St0 = max(St0.Fcl); Ft0 = 1-St0 ## St0 = P(D=0); Ft0 = P(D=1) = pi
-		PPV[,2]= (Ft0-Ft0.Fcl)/(1-Fcl); if (sum(Fcl==1)>0) PPV.cl[Fcl==1] = NA  ## P(D=1|Z> cl)
-		TPF[,2] = (Ft0-Ft0.Fcl)/Ft0     ## P(Z> cl|D=1)
+		if(!((max(cut.values)<=max(marker))&(min(cut.values)>=min(marker)))){
+			cut.values=cut.values[(min(marker)<=cut.values)&(cut.values<=max(marker))]
+			cat("Warning: Some cut values are out of range!\n") 
+		}
+		if(length(cut.values)==0){cut.values=NULL;cat("Warning: No avaliable cut values!\n")}
+		if(!is.null(cut.values)){
+			scl=cut.values
+			PPV=TPF=array(0,dim=c(length(scl),2))
+			PPV[,1]=TPF[,1]=scl
+
+			TPF[,2] = sum.I(scl,"<",zk,1*(dk==1)*vk)/sum(1*(dk==1)*vk) ## P(Z> cl|D=1)
+			PPV[,2] = sum.I(scl,"<",zk,1*(dk==1)*vk)/sum.I(scl,"<",zk,vk) ## P(D=1|Z> cl)
+		}
+	}
+	
+	if(method=="none"){
+		
+		auc = sum((0.5*sum.I(zk,"<",zk,1*(dk==1)*vk)+0.5*sum.I(zk,"<=",zk,1*(dk==1)*vk))*(dk==0)*vk)/(sum(vk*(dk==1))*sum(vk*(dk==0))) 
+		ap =  sum(vk*(dk==1)*sum.I(zk,"<=",zk,1*(dk==1)*vk)/sum.I(zk,"<=",zk,vk),na.rm=T)/sum((dk==1)*vk) 
+		event_rate=sum(status)/nn
+		
+		if(!is.null(cut.values)){
+			colnames(PPV)=c("cut.off values","PPV")
+			colnames(TPF)=c("cut.off values","TPF")
+			write.csv(signif(PPV,3),file=paste("APBinary_PPV.csv",sep=""))
+			write.csv(signif(TPF,3),file=paste("APBinary_TPF.csv",sep=""))
+			return(list(PPV=signif(PPV,3),TPF=signif(TPF,3),ap=ap,auc=auc,event_rate=event_rate))
+		}
+		return(list(ap=ap,auc=auc,event_rate=event_rate))		
 	}
 	
 	if(method=="perturbation"){
@@ -35,7 +55,6 @@ APBinary <- function(status,marker,cut.values=NULL,method="bootstrap",alpha=0.95
 		auc[1] = sum((0.5*sum.I(zk,"<",zk,1*(dk==1)*vk)+0.5*sum.I(zk,"<=",zk,1*(dk==1)*vk))*(dk==0)*vk)/(sum(vk*(dk==1))*sum(vk*(dk==0))) 
 		ap[1] =  sum(vk*(dk==1)*sum.I(zk,"<=",zk,1*(dk==1)*vk)/sum.I(zk,"<=",zk,vk),na.rm=T)/sum((dk==1)*vk) 
 		####save true value
-		cat("perturbation starts\n")
 		auc[2:(B+1)] = apply((0.5*sum.I(zk,"<",zk,1*(dk==1)*vk1)+0.5*sum.I(zk,"<=",zk,1*(dk==1)*vk1))*(dk==0)*vk1,2,sum,na.rm=T)/(apply(vk1*(dk==1),2,sum)*apply(vk1*(dk==0),2,sum))
 		ap[2:(B+1)] = apply(vk1*(dk==1)*sum.I(zk,"<=",zk,1*(dk==1)*vk1)/sum.I(zk,"<=",zk,vk1),2,sum,na.rm=T)/apply((dk==1)*vk1,2,sum)			
 	}
@@ -47,7 +66,6 @@ APBinary <- function(status,marker,cut.values=NULL,method="bootstrap",alpha=0.95
 			index=sample(c(1:nn),nn,replace=TRUE)
 			data_resam[,,k]=as.matrix(data0[as.vector(index),])
 		} 
-		cat("Bootstrap starts\n")
 		for(k in 1:(B+1)){
 			dk=data_resam[,1,k];zk=data_resam[,2,k]
 			auc[k] = sum((0.5*sum.I(zk,"<",zk,1*(dk==1)*vk)+0.5*sum.I(zk,"<=",zk,1*(dk==1)*vk))*(dk==0)*vk)/(sum(vk*(dk==1))*sum(vk*(dk==0))) 
@@ -75,7 +93,8 @@ APBinary <- function(status,marker,cut.values=NULL,method="bootstrap",alpha=0.95
 	ap_summary[2,2]<-max(quantile(ap,(1-alpha)/2,na.rm=T),0)
 	ap_summary[2,3]<-min(quantile(ap,(1+alpha)/2,na.rm=T),1)  
 	
-	colnames(auc_summary)<-c("AUC",paste("Lower Limit(a=",alpha,")",sep=""),paste("Upper Limit(a=",alpha,")",sep=""))
+	colnames(auc_summary)<-c("Point Estimate",paste("Lower Limit(a=",alpha,")",sep=""),paste("Upper Limit(a=",alpha,")",sep=""))
+	rownames(auc_summary) = c("AUC")
 	write.csv(signif(auc_summary,3),file=paste("APBinary_auc_summary(","method=",method,",B=",B,").csv",sep=""))
 
 	colnames(ap_summary)<-c("Point Estimate",paste("Lower Limit(a=",alpha,")",sep=""),paste("Upper Limit(a=",alpha,")",sep=""))

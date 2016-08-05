@@ -9,7 +9,7 @@
 }
 \usage{
   APBinary(status, marker, cut.values = NULL,
-    method = "bootstrap", alpha = 0.95, B = 1000)
+    method = "none", alpha = 0.95, B = 1000)
 }
 \arguments{
   \item{status}{Binary indicator, 1 indicates case / the
@@ -23,8 +23,9 @@
   positive fractions (TPF). The default value is NULL.}
 
   \item{method}{Method to obtain confidence intervals. The
-  default value is "bootstrap". Another option is
-  "perturbation".}
+  default is method = "none", in which case only point estimates will be given without confidence intervals. 
+  If method= "perturbation", then perturbation based CI will be calculated. 
+  If method = "bootstrap", then nonparametric bootstrap based CI will be calculated.}
 
   \item{alpha}{Confidence level.  The default level is
   0.95.}
@@ -64,11 +65,9 @@ status=c(rep(1,10),rep(0,1),rep(1,18),rep(0,11),rep(1,25),
 marker=c(rep(7,11),rep(6,29),rep(5,69),rep(4,261))
 cut.values=sort(unique(marker)[-1])
 out1 <- APBinary(status,marker,cut.values)
-out1$PPV
-out1$TPF
+out1
 out2 <- APBinary(status,marker,method="perturbation",
 	alpha=0.90,B=1500)
-out2$ap_summary
-out2$auc_summary
+out2
 }
 

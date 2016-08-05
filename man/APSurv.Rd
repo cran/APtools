@@ -12,7 +12,7 @@
 }
 \usage{
   APSurv(stime, status, marker, t0.list, cut.values = NULL,
-    method = "perturbation", alpha = 0.95, B = 1000,
+    method = "none", alpha = 0.95, B = 1000,
     weight = NULL, Plot = TRUE)
 }
 \arguments{
@@ -34,9 +34,9 @@
   value is NULL.}
 
   \item{method}{Method to obtain confidence intervals. The
-  default value is "perturbation". Another option is
-  "bootstrap", which performs the nonparametric
-  bootstrap.}
+  default is method = "none", in which case only point estimates will be given without confidence intervals. 
+  If method= "perturbation", then perturbation based CI will be calculated. 
+  If method = "bootstrap", then nonparametric bootstrap based CI will be calculated.}
 
   \item{alpha}{Confidence level. The default level is
   0.95.}

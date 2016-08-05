@@ -9,7 +9,7 @@
 }
 \usage{
   CompareAP(status, marker1, marker2, stime = NULL,
-    t0.list = NULL, method = "perturbation", alpha = 0.95,
+    t0.list = NULL, method = "none", alpha = 0.95,
     B = 1000, weight = NULL, Plot = TRUE)
 }
 \arguments{
@@ -34,8 +34,9 @@
   stime. It is set to be NULL if stime is NULL.}
 
   \item{method}{Method to obtain confidence intervals. The
-  default value is "perturbation". Another option is
-  "bootstrap".}
+  default is method = "none", in which case only point estimates will be given without confidence intervals. 
+  If method= "perturbation", then perturbation based CI will be calculated. 
+  If method = "bootstrap", then nonparametric bootstrap based CI will be calculated.}
 
   \item{alpha}{Confidence level. The default level is
   0.95.}
