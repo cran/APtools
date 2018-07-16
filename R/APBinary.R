@@ -2,19 +2,28 @@
 #' @importFrom stats quantile
 #' @importFrom utils write.csv
 #' @export APBinary
-APBinary <- function(status,marker,cut.values=NULL,method="none",alpha=0.95,B=1000)
+APBinary <- function(status,marker,cut.values=NULL,method="none",alpha=0.95,B=1000,weight=NULL)
 {	
 	############Checking the Formation############
 	
 	if(length(status)!=length(marker)){
-		stop("The length of each data is not equal!\n") 
+		stop("The lengths of each data are not equal!\n")
 	}
+    
+    if(is.null(weight)){
+        vk = rep(1,length(status))
+    }else{
+        if(length(weight)!=length(marker)){
+            stop("The length of weight does not match!\n")
+        }else{
+            vk = weight
+        }
+    }
 
 	data0=cbind(status,marker)
 	nn<-nrow(data0)
 	
 	auc=ap=ap_event=array(0,dim=c(B+1))
-	vk = rep(1,nn)
 	dk=status;zk=marker
 	############Set Cut-Off Value############
 	if(!is.null(cut.values)){

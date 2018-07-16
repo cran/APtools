@@ -7,6 +7,8 @@
 #' @importFrom graphics plot
 #' @importFrom graphics lines
 #' @importFrom graphics legend
+#' @importFrom cmprsk cuminc
+#' @importFrom cmprsk timepoints
 #' @export CompareAP
 
 CompareAP <- function(status,marker1,marker2,stime=NULL,t0.list=NULL,method="none",alpha=0.95,B=1000,weight=NULL,Plot=TRUE)
@@ -158,7 +160,7 @@ CompareAP <- function(status,marker1,marker2,stime=NULL,t0.list=NULL,method="non
 		N_j=length(t0.list)
 		nn<-nrow(data0)
 		auc=ap=array(0,dim=c(B+1,N_j,2))
-		Ti = data0[,1]; Di = data0[,2]
+		Ti = data0[,1]; Di = 1*(data0[,2]!=0)
 		vk = rep(1,nn)
 		
 			###########plot##################
@@ -173,17 +175,17 @@ CompareAP <- function(status,marker1,marker2,stime=NULL,t0.list=NULL,method="non
 					Wi = rep(0,length(Ti)); Vi=rep(1,length(Ti))
 					tmpind = rank(tt)
 					Ghat.tt = summary(survfit(Surv(Ti,1-Di)~1, se.fit=F, type='fl', weights=Vi), sort(tt))$surv[tmpind]
-					Wi[Ti <= t0] = Di[Ti<=t0]/Ghat.tt[-1]; Wi[Ti >  t0] = 1/Ghat.tt[1]
+					Wi[Ti <= t0] = 1*(Di[Ti<=t0]!=0)/Ghat.tt[-1]; Wi[Ti >  t0] = 1/Ghat.tt[1]
 					wk = Wi
 				}else{
 					wk = weight
 				}
-				xk=stime;zk=marker1
-				ap_plot[j,1] = sum(wk*vk*(xk<=t0)*sum.I(zk,"<=",zk,1*(xk<=t0)*vk*wk)/sum.I(zk,"<=",zk,vk),na.rm=T)/sum((xk<=t0)*vk*wk)
-				auc_plot[j,1] = sum((0.5*sum.I(zk,"<=",zk,1*(xk<=t0)*wk*vk)+0.5*sum.I(zk,"<",zk,1*(xk<=t0)*wk*vk))*(xk>t0)*wk*vk)/(sum(vk*wk*(xk<=t0))*sum(vk*wk*(xk>t0))) 
-				zk=marker2
-				ap_plot[j,2] = sum(wk*vk*(xk<=t0)*sum.I(zk,"<=",zk,1*(xk<=t0)*vk*wk)/sum.I(zk,"<=",zk,vk),na.rm=T)/sum((xk<=t0)*vk*wk)
-				auc_plot[j,2] = sum((0.5*sum.I(zk,"<=",zk,1*(xk<=t0)*wk*vk)+0.5*sum.I(zk,"<",zk,1*(xk<=t0)*wk*vk))*(xk>t0)*wk*vk)/(sum(vk*wk*(xk<=t0))*sum(vk*wk*(xk>t0))) 
+				xk=stime;zk=marker1;dk=status;
+				ap_plot[j,1] = sum(wk*vk*(xk<=t0)*(dk==1)*sum.I(zk,"<=",zk,1*(xk<=t0)*vk*wk*(dk==1))/sum.I(zk,"<=",zk,vk),na.rm=T)/sum((xk<=t0)*vk*wk*(dk==1))
+				auc_plot[j,1] = sum((0.5*sum.I(zk,"<=",zk,1*(xk<=t0)*wk*vk*(dk==1))+0.5*sum.I(zk,"<",zk,1*(xk<=t0)*wk*vk*(dk==1)))*(xk>t0)*wk*vk)/(sum(vk*wk*(xk<=t0)*(dk==1))*sum(vk*wk*(xk>t0))) 
+				zk=marker2;
+				ap_plot[j,2] = sum(wk*vk*(xk<=t0)*(dk==1)*sum.I(zk,"<=",zk,1*(xk<=t0)*vk*wk*(dk==1))/sum.I(zk,"<=",zk,vk),na.rm=T)/sum((xk<=t0)*vk*wk*(dk==1))
+				auc_plot[j,2] = sum((0.5*sum.I(zk,"<=",zk,1*(xk<=t0)*wk*vk*(dk==1))+0.5*sum.I(zk,"<",zk,1*(xk<=t0)*wk*vk*(dk==1)))*(xk>t0)*wk*vk)/(sum(vk*wk*(xk<=t0)*(dk==1))*sum(vk*wk*(xk>t0)))  
 			}
 			if((mean(ap_plot[,1])/mean(ap_plot[,2]))>=1){
 				dap_plot=ap_plot[,1]/ap_plot[,2]
@@ -193,14 +195,10 @@ CompareAP <- function(status,marker1,marker2,stime=NULL,t0.list=NULL,method="non
 				flag2="AP2/AP1"
 			}
 			#use survival to find the corresponding event rate r based on t0
-			fit1<-coxph(Surv(data0[,1],data0[,2])~1)
-			dfit1<-survfit(fit1)
-			tt<-dfit1$time
-			rr <- 1-dfit1$surv
-			pi_l <- t0_l*0
-			for (l in 1:length(t0_l)){
-				pi_l[l] = rr[which(tt>=t0_l[l])[1]]
-			}
+			cumi=cuminc(stime, status)
+			er=timepoints(cumi, times=t0_l)
+			pi_l <- er$est[1,]
+			
 			###########plot##################
 			par(mfrow=c(1,3))
 
@@ -228,26 +226,21 @@ CompareAP <- function(status,marker1,marker2,stime=NULL,t0.list=NULL,method="non
 					Wi = rep(0,length(Ti)); Vi=rep(1,length(Ti))
 					tmpind = rank(tt)
 					Ghat.tt = summary(survfit(Surv(Ti,1-Di)~1, se.fit=F, type='fl', weights=Vi), sort(tt))$surv[tmpind]
-					Wi[Ti <= t0] = Di[Ti<=t0]/Ghat.tt[-1]; Wi[Ti >  t0] = 1/Ghat.tt[1]
+					Wi[Ti <= t0] = 1*(Di[Ti<=t0]!=0)/Ghat.tt[-1]; Wi[Ti >  t0] = 1/Ghat.tt[1]
 					wk = Wi
 				}else{
 					wk=weight
 				}
 				for(i in 1:2){
-					xk <- data0[,1]; zk <- data0[,i+2]; 
-					ap[j,i] = sum(wk*vk*(xk<=t0)*sum.I(zk,"<=",zk,1*(xk<=t0)*vk*wk)/sum.I(zk,"<=",zk,vk),na.rm=T)/sum((xk<=t0)*vk*wk)
-				}
+					xk <- data0[,1]; dk <- data0[,2];zk <- data0[,i+2]; 
+					ap[j,i] = sum(wk*vk*(xk<=t0)*(dk==1)*sum.I(zk,"<=",zk,1*(xk<=t0)*vk*wk*(dk==1))/sum.I(zk,"<=",zk,vk),na.rm=T)/sum((xk<=t0)*vk*wk*(dk==1))				}
 			}
 			
 			#use survival to find the corresponding event rate r based on t0
-			fit1<-coxph(Surv(data0[,1],data0[,2])~1)
-			dfit1<-survfit(fit1)
-			tt<-dfit1$time
-			rr <- 1-dfit1$surv
-			pi.list <- t0.list*0
-			for (l in 1:length(t0.list)){
-				pi.list[l] = rr[which(tt>=t0.list[l])[1]]
-			}
+			
+			cumi=cuminc(stime, status)
+			er=timepoints(cumi, times=t0.list)
+			pi.list <- er$est[1,]
 
 			dap_summary=matrix(0,nrow=N_j,ncol=6)
 			dap_summary[,1]=t0.list
@@ -290,7 +283,7 @@ CompareAP <- function(status,marker1,marker2,stime=NULL,t0.list=NULL,method="non
 					Wi = rep(0,length(Ti)); Vi=rep(1,length(Ti))
 					tmpind = rank(tt)
 					Ghat.tt = summary(survfit(Surv(Ti,1-Di)~1, se.fit=F, type='fl', weights=Vi), sort(tt))$surv[tmpind]
-					Wi[Ti <= t0] = Di[Ti<=t0]/Ghat.tt[-1]; Wi[Ti >  t0] = 1/Ghat.tt[1]
+					Wi[Ti <= t0] = 1*(Di[Ti<=t0]!=0)/Ghat.tt[-1]; Wi[Ti >  t0] = 1/Ghat.tt[1]
 					wk = Wi
 					wk1=array(wk,dim=c(length(wk),B))
 				}else{
@@ -298,11 +291,16 @@ CompareAP <- function(status,marker1,marker2,stime=NULL,t0.list=NULL,method="non
 					wk1=array(wk,dim=c(length(wk),B))
 				}
 				for(i in 1:2){
-					xk <- data0[,1]; zk <- data0[,i+2]; 
-					#auc[1,j,i] = sum((0.5*sum.I(zk,"<=",zk,1*(xk<=t0)*wk*vk)+0.5*sum.I(zk,"<",zk,1*(xk<=t0)*wk*vk))*(xk>t0)*wk*vk)/(sum(vk*wk*(xk<=t0))*sum(vk*wk*(xk>t0))) 
-					ap[1,j,i] = sum(wk*vk*(xk<=t0)*sum.I(zk,"<=",zk,1*(xk<=t0)*vk*wk)/sum.I(zk,"<=",zk,vk),na.rm=T)/sum((xk<=t0)*vk*wk)
-					#auc[2:(B+1),j,i]= apply(0.5*sum.I(zk,"<=",zk,1*(xk<=t0)*wk1*vk1)*(xk>t0)*wk1*vk1+0.5*sum.I(zk,"<",zk,1*(xk<=t0)*wk1*vk1)*(xk>t0)*wk1*vk1,2,sum,na.rm=T)/(apply(vk1*wk1*(xk<=t0),2,sum)*apply(vk1*wk1*(xk>t0),2,sum))
-					ap[2:(B+1),j,i] = apply(wk1*vk1*(xk<=t0)*sum.I(zk,"<=",zk,1*(xk<=t0)*vk1*wk1)/sum.I(zk,"<=",zk,vk1),2,sum,na.rm=T)/apply((xk<=t0)*vk1*wk1,2,sum)
+				  xk <- data0[,1]; dk <- data0[,2]; zk <- data0[,i+2]; 
+				  #auc1[1,j,i] = sum((0.5*sum.I(zk,"<=",zk,1*(xk<=t0)*wk*vk*(dk==1))+0.5*sum.I(zk,"<",zk,1*(xk<=t0)*wk*vk*(dk==1)))*(xk>t0)*wk*vk)/(sum(vk*wk*(xk<=t0)*(dk==1))*sum(vk*wk*(xk>t0))) 
+				  #auc2[1,j,i] = sum((0.5*sum.I(zk,"<=",zk,1*(xk<=t0)*wk*vk*(dk==2))+0.5*sum.I(zk,"<",zk,1*(xk<=t0)*wk*vk*(dk==2)))*(xk>t0)*wk*vk)/(sum(vk*wk*(xk<=t0)*(dk==2))*sum(vk*wk*(xk>t0))) 
+				  ap[1,j,i] = sum(wk*vk*(xk<=t0)*(dk==1)*sum.I(zk,"<=",zk,1*(xk<=t0)*vk*wk*(dk==1))/sum.I(zk,"<=",zk,vk),na.rm=T)/sum((xk<=t0)*vk*wk*(dk==1))
+				  #ap2[1,j,i] = sum(wk*vk*(xk<=t0)*(dk==2)*sum.I(zk,"<=",zk,1*(xk<=t0)*vk*wk*(dk==2))/sum.I(zk,"<=",zk,vk),na.rm=T)/sum((xk<=t0)*vk*wk*(dk==2))
+				  #auc[2:(B+1),j,i]= apply(0.5*sum.I(zk,"<=",zk,1*(xk<=t0)*wk1*vk1)*(xk>t0)*wk1*vk1+0.5*sum.I(zk,"<",zk,1*(xk<=t0)*wk1*vk1)*(xk>t0)*wk1*vk1,2,sum,na.rm=T)/(apply(vk1*wk1*(xk<=t0),2,sum)*apply(vk1*wk1*(xk>t0),2,sum))
+				  #auc1[2:(B+1),j,i]= apply(0.5*sum.I(zk,"<=",zk,1*(xk<=t0)*wk1*vk1*(dk==1))*(xk>t0)*wk1*vk1*(dk==1)+0.5*sum.I(zk,"<",zk,1*(xk<=t0)*wk1*vk1*(dk==1))*(xk>t0)*wk1*vk1*(dk==1),2,sum,na.rm=T)/(apply(vk1*wk1*(xk<=t0)*(dk==1),2,sum)*apply(vk1*wk1*(xk>t0)*(dk==1),2,sum))
+				  #auc2[2:(B+1),j,i]= apply(0.5*sum.I(zk,"<=",zk,1*(xk<=t0)*wk1*vk1*(dk==2))*(xk>t0)*wk1*vk1*(dk==2)+0.5*sum.I(zk,"<",zk,1*(xk<=t0)*wk1*vk1*(dk==2))*(xk>t0)*wk1*vk1*(dk==2),2,sum,na.rm=T)/(apply(vk1*wk1*(xk<=t0)*(dk==2),2,sum)*apply(vk1*wk1*(xk>t0)*(dk==2),2,sum))
+				  ap[2:(B+1),j,i] = apply(wk1*vk1*(xk<=t0)*(dk==1)*sum.I(zk,"<=",zk,1*(xk<=t0)*vk1*wk1*(dk==1))/sum.I(zk,"<=",zk,vk1),2,sum,na.rm=T)/apply((xk<=t0)*vk1*wk1*(dk==1),2,sum)
+				  #ap2[2:(B+1),j,i] = apply(wk1*vk1*(xk<=t0)*(dk==2)*sum.I(zk,"<=",zk,1*(xk<=t0)*vk1*wk1*(dk==2))/sum.I(zk,"<=",zk,vk1),2,sum,na.rm=T)/apply((xk<=t0)*vk1*wk1*(dk==2),2,sum)
 				}
 			}
 		}
@@ -324,7 +322,7 @@ CompareAP <- function(status,marker1,marker2,stime=NULL,t0.list=NULL,method="non
 					Wi = rep(0,length(Ti)); Vi=rep(1,length(Ti))
 					tmpind = rank(tt)
 					Ghat.tt = summary(survfit(Surv(Ti,1-Di)~1, se.fit=F, type='fl', weights=Vi), sort(tt))$surv[tmpind]
-					Wi[Ti <= t0] = Di[Ti<=t0]/Ghat.tt[-1]; Wi[Ti >  t0] = 1/Ghat.tt[1]
+					Wi[Ti <= t0] = 1*(Di[Ti<=t0]!=0)/Ghat.tt[-1]; Wi[Ti >  t0] = 1/Ghat.tt[1]
 					wkc = Wi
 				}else{
 					wkc=weight
@@ -332,22 +330,21 @@ CompareAP <- function(status,marker1,marker2,stime=NULL,t0.list=NULL,method="non
 				for(i in 1:2){
 					for(k in 1:(B+1)){
 						wk=wkc[index[,k]]
-						xk <- data_resam[,1,k]; zk <- data_resam[,i+2,k]; 
-						#auc[k,j,i]= sum((0.5*sum.I(zk,"<=",zk,1*(xk<=t0)*wk*vk)+0.5*sum.I(zk,"<",zk,1*(xk<=t0)*wk*vk))*(xk>t0)*wk*vk)/(sum(vk*wk*(xk<=t0))*sum(vk*wk*(xk>t0))) 
-						ap[k,j,i] = sum(wk*vk*(xk<=t0)*sum.I(zk,"<=",zk,1*(xk<=t0)*vk*wk)/sum.I(zk,"<=",zk,vk),na.rm=T)/sum((xk<=t0)*vk*wk)
+						xk <- data_resam[,1,k]; dk <- data_resam[,2,k]; zk <- data_resam[,i+2,k]; 
+						#auc1[k,j,i]= sum((0.5*sum.I(zk,"<=",zk,1*(xk<=t0)*wk*vk*(dk==1))+0.5*sum.I(zk,"<",zk,1*(xk<=t0)*wk*vk*(dk==1)))*(xk>t0)*wk*vk)/(sum(vk*wk*(xk<=t0)*(dk==1))*sum(vk*wk*(xk>t0))) 
+						#auc2[k,j,i]= sum((0.5*sum.I(zk,"<=",zk,1*(xk<=t0)*wk*vk*(dk==2))+0.5*sum.I(zk,"<",zk,1*(xk<=t0)*wk*vk*(dk==2)))*(xk>t0)*wk*vk)/(sum(vk*wk*(xk<=t0)*(dk==2))*sum(vk*wk*(xk>t0))) 
+						ap[k,j,i] = sum(wk*vk*(xk<=t0)*(dk==1)*sum.I(zk,"<=",zk,1*(xk<=t0)*vk*wk*(dk==1))/sum.I(zk,"<=",zk,vk),na.rm=T)/sum((xk<=t0)*vk*wk*(dk==1))
+						#ap2[k,j,i] = sum(wk*vk*(xk<=t0)*(dk==2)*sum.I(zk,"<=",zk,1*(xk<=t0)*vk*wk*(dk==2))/sum.I(zk,"<=",zk,vk),na.rm=T)/sum((xk<=t0)*vk*wk*(dk==2))
 					}
 				}
 			}
 		}
 		#use survival to find the corresponding event rate r based on t0
-		fit1<-coxph(Surv(data0[,1],data0[,2])~1)
-		dfit1<-survfit(fit1)
-		tt<-dfit1$time
-		rr <- 1-dfit1$surv
-		pi.list <- t0.list*0
-		for (l in 1:length(t0.list)){
-			pi.list[l] = rr[which(tt>=t0.list[l])[1]]
-		}
+		cumi=cuminc(stime, status)
+		er=timepoints(cumi, times=t0.list)
+		pi.list <- er$est[1,]
+		#p2.list <- er$est[2,]
+		
 
 		dap_summary=matrix(0,nrow=N_j,ncol=14)
 		dap_summary[,1]=t0.list

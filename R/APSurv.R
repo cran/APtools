@@ -6,6 +6,8 @@
 #' @importFrom graphics plot
 #' @importFrom graphics lines
 #' @importFrom graphics legend
+#' @importFrom cmprsk cuminc
+#' @importFrom cmprsk timepoints
 #' @export APSurv
 
 APSurv <- function(stime,status,marker,t0.list,cut.values=NULL,method="none",alpha=0.95,B=1000,weight=NULL,Plot=TRUE)
@@ -16,7 +18,8 @@ APSurv <- function(stime,status,marker,t0.list,cut.values=NULL,method="none",alp
 	if((length(stime)!=length(status))|(length(status)!=length(marker))){
 		stop("The length of each data is not equal!\n") 
 	}
-	fit1=coxph(Surv(stime,status)~1)
+  Di = 1*(status!=0);
+	fit1=coxph(Surv(stime,Di)~1)
 	dfit1=survfit(fit1)
 	tt=dfit1$time
 	if(max(t0.list)>=max(tt)){
@@ -30,7 +33,7 @@ APSurv <- function(stime,status,marker,t0.list,cut.values=NULL,method="none",alp
 	auc=ap=ap_event=array(0,dim=c(B+1,N_j))
 	
 	############Set Cut-Off Value############
-	xk=Ti=stime;zk=marker;Di=status
+	xk=Ti=stime;zk=marker;Di = 1*(data0[,2]!=0);dk=status
 	vk = rep(1,nn)
 	if(!is.null(cut.values)){
 		if(!((max(cut.values)<=max(marker))&(min(cut.values)>=min(marker)))){
@@ -50,7 +53,7 @@ APSurv <- function(stime,status,marker,t0.list,cut.values=NULL,method="none",alp
 
 		t0_l=seq(from=min(stime),to=max(stime),length.out=102)[c(-1,-102)]
 		ap_plot=rep(0,length(t0_l))
-		xk=stime;zk=marker
+		xk=stime;zk=marker;dk=status;Di = 1*(data0[,2]!=0);
 		for (j in 1:length(t0_l)){
 			t0<-t0_l[j]
 			if(is.null(weight)){
@@ -59,26 +62,22 @@ APSurv <- function(stime,status,marker,t0.list,cut.values=NULL,method="none",alp
 				Wi = rep(0,length(Ti)); Vi=rep(1,length(Ti))
 				tmpind = rank(tt)
 				Ghat.tt = summary(survfit(Surv(Ti,1-Di)~1, se.fit=F, type='fl', weights=Vi), sort(tt))$surv[tmpind]
-				Wi[Ti <= t0] = Di[Ti<=t0]/Ghat.tt[-1]; Wi[Ti >  t0] = 1/Ghat.tt[1]
+				Wi[Ti <= t0] = 1*(Di[Ti<=t0]!=0)/Ghat.tt[-1]; Wi[Ti >  t0] = 1/Ghat.tt[1]
 				wk = Wi
 			}else{
 				wk = weight
 			}
-			ap_plot[j]= sum(wk*vk*(xk<=t0)*sum.I(zk,"<=",zk,1*(xk<=t0)*vk*wk)/sum.I(zk,"<=",zk,vk),na.rm=T)/sum((xk<=t0)*vk*wk)
+			ap_plot[j]= sum(wk*vk*(xk<=t0)*(dk==1)*sum.I(zk,"<=",zk,1*(xk<=t0)*vk*wk*(dk==1))/sum.I(zk,"<=",zk,vk),na.rm=T)/sum((xk<=t0)*vk*wk*(dk==1))
 		}
 		
 		#use survival to find the corresponding event rate r based on t0
-		fit1<-coxph(Surv(data0[,1],data0[,2])~1)
-		dfit1<-survfit(fit1)
-		tt<-dfit1$time
-		rr <- 1-dfit1$surv
-		pi_l <- t0_l*0
-		for (l in 1:length(t0_l)){
-			pi_l[l] = rr[which(tt>=t0_l[l])[1]]
-		}
+		
+		cumi=cuminc(stime, status)
+		er=timepoints(cumi, times=t0_l)
+		pi_l <- er$est[1,]
 		
 		###########plot##################
-		plot(t0_l,pi_l,type="l",xlim=c(0,max(t0_l)),ylim=c(0,max(ap_plot)),col="purple",lwd=2,xlab="Time",ylab="AP",main="AP vs t0",)
+		plot(t0_l,pi_l,type="l",xlim=c(0,max(t0_l)),ylim=c(0,max(ap_plot)),col="purple",lwd=2,xlab="Time",ylab="AP",main="AP vs t0",cex.main=1.5,cex.lab=1.2)
 		lines(t0_l,ap_plot,col="red",lwd=2)
 		legend("topleft",c("random marker",colnames(data0)[3]),col=c("purple","red"),lwd=2,cex=1.2)  		
 	}
@@ -93,7 +92,7 @@ APSurv <- function(stime,status,marker,t0.list,cut.values=NULL,method="none",alp
 				Wi = rep(0,length(Ti)); Vi=rep(1,length(Ti))
 				tmpind = rank(tt)
 				Ghat.tt = summary(survfit(Surv(Ti,1-Di)~1, se.fit=F, type='fl', weights=Vi), sort(tt))$surv[tmpind]
-				Wi[Ti <= t0] = Di[Ti<=t0]/Ghat.tt[-1]; Wi[Ti >  t0] = 1/Ghat.tt[1]
+				Wi[Ti <= t0] = 1*(Di[Ti<=t0]!=0)/Ghat.tt[-1]; Wi[Ti >  t0] = 1/Ghat.tt[1]
 				wk = Wi
 			}else{
 				wk = weight
@@ -107,21 +106,17 @@ APSurv <- function(stime,status,marker,t0.list,cut.values=NULL,method="none",alp
 
 			}
 		
-			auc[j] = sum((0.5*sum.I(zk,"<=",zk,1*(xk<=t0)*wk*vk)+0.5*sum.I(zk,"<",zk,1*(xk<=t0)*wk*vk))*(xk>t0)*wk*vk)/(sum(vk*wk*(xk<=t0))*sum(vk*wk*(xk>t0))) 
-			ap[j] = sum(wk*vk*(xk<=t0)*sum.I(zk,"<=",zk,1*(xk<=t0)*vk*wk)/sum.I(zk,"<=",zk,vk),na.rm=T)/sum((xk<=t0)*vk*wk)
+			auc[j] = sum((0.5*sum.I(zk,"<=",zk,1*(xk<=t0)*wk*vk*(dk==1))+0.5*sum.I(zk,"<",zk,1*(xk<=t0)*wk*vk*(dk==1)))*(xk>t0)*wk*vk)/(sum(vk*wk*(xk<=t0)*(dk==1))*sum(vk*wk*(xk>t0)))
+			ap[j] = sum(wk*vk*(xk<=t0)*(dk==1)*sum.I(zk,"<=",zk,1*(xk<=t0)*vk*wk*(dk==1))/sum.I(zk,"<=",zk,vk),na.rm=T)/sum((xk<=t0)*vk*wk*(dk==1))
 			ap_event[j] = ap[j]*nn/sum((xk<=t0)*vk*wk)
 			
 		}	
 			####use survival to find the corresponding event rate r based on t0
-		fit1<-coxph(Surv(data0[,1],data0[,2])~1)
-		dfit1<-survfit(fit1)
-		tt<-dfit1$time
-		rr = 1-dfit1$surv
-		pi.list = t0.list*0
-		for (l in 1:length(t0.list)){
-			pi.list[l] = rr[which(tt>=t0.list[l])[1]]
-		}	
 		
+		cumi=cuminc(stime, status)
+		er=timepoints(cumi, times=t0.list)
+		pi.list <- er$est[1,]
+	
 		auc_summary=array(0,dim=c(N_j,3))
 		ap_summary=array(0,dim=c(N_j,4))
 		auc_summary[,1]=ap_summary[,1]=t0.list
@@ -163,7 +158,7 @@ APSurv <- function(stime,status,marker,t0.list,cut.values=NULL,method="none",alp
 				Wi = rep(0,length(Ti)); Vi=rep(1,length(Ti))
 				tmpind = rank(tt)
 				Ghat.tt = summary(survfit(Surv(Ti,1-Di)~1, se.fit=F, type='fl', weights=Vi), sort(tt))$surv[tmpind]
-				Wi[Ti <= t0] = Di[Ti<=t0]/Ghat.tt[-1]; Wi[Ti >  t0] = 1/Ghat.tt[1]
+				Wi[Ti <= t0] = 1*(Di[Ti<=t0]!=0)/Ghat.tt[-1]; Wi[Ti >  t0] = 1/Ghat.tt[1]
 				wk = Wi
 				wk1 = array(wk,dim=c(length(wk),B))
 			}else{
@@ -179,8 +174,8 @@ APSurv <- function(stime,status,marker,t0.list,cut.values=NULL,method="none",alp
 
 			}
 		
-			auc[1,j] = sum((0.5*sum.I(zk,"<=",zk,1*(xk<=t0)*wk*vk)+0.5*sum.I(zk,"<",zk,1*(xk<=t0)*wk*vk))*(xk>t0)*wk*vk)/(sum(vk*wk*(xk<=t0))*sum(vk*wk*(xk>t0))) 
-			ap[1,j] = sum(wk*vk*(xk<=t0)*sum.I(zk,"<=",zk,1*(xk<=t0)*vk*wk)/sum.I(zk,"<=",zk,vk),na.rm=T)/sum((xk<=t0)*vk*wk)
+			auc[1,j] =sum((0.5*sum.I(zk,"<=",zk,1*(xk<=t0)*wk*vk*(dk==1))+0.5*sum.I(zk,"<",zk,1*(xk<=t0)*wk*vk*(dk==1)))*(xk>t0)*wk*vk)/(sum(vk*wk*(xk<=t0)*(dk==1))*sum(vk*wk*(xk>t0)))
+			ap[1,j] = sum(wk*vk*(xk<=t0)*(dk==1)*sum.I(zk,"<=",zk,1*(xk<=t0)*vk*wk*(dk==1))/sum.I(zk,"<=",zk,vk),na.rm=T)/sum((xk<=t0)*vk*wk*(dk==1))
 			ap_event[1,j] = ap[1,j]*nn/sum((xk<=t0)*vk*wk)
 			# ap_event[1,j] = ap[1,j]/pi.list[j]
 			
@@ -188,8 +183,8 @@ APSurv <- function(stime,status,marker,t0.list,cut.values=NULL,method="none",alp
 			############Perturbation Process############
 			cat("t0=",t0,"\n",sep="")
 			
-			auc[2:(B+1),j]= apply(0.5*sum.I(zk,"<=",zk,1*(xk<=t0)*wk1*vk1)*(xk>t0)*wk1*vk1+0.5*sum.I(zk,"<",zk,1*(xk<=t0)*wk1*vk1)*(xk>t0)*wk1*vk1,2,sum,na.rm=T)/(apply(vk1*wk1*(xk<=t0),2,sum)*apply(vk1*wk1*(xk>t0),2,sum))
-			ap[2:(B+1),j] = apply(wk1*vk1*(xk<=t0)*sum.I(zk,"<=",zk,1*(xk<=t0)*vk1*wk1)/sum.I(zk,"<=",zk,vk1),2,sum,na.rm=T)/apply((xk<=t0)*vk1*wk1,2,sum)
+			auc[2:(B+1),j]= apply(0.5*sum.I(zk,"<=",zk,1*(xk<=t0)*wk1*vk1*(dk==1))*(xk>t0)*wk1*vk1*(dk==1)+0.5*sum.I(zk,"<",zk,1*(xk<=t0)*wk1*vk1*(dk==1))*(xk>t0)*wk1*vk1*(dk==1),2,sum,na.rm=T)/(apply(vk1*wk1*(xk<=t0)*(dk==1),2,sum)*apply(vk1*wk1*(xk>t0)*(dk==1),2,sum))
+			ap[2:(B+1),j] = apply(wk1*vk1*(xk<=t0)*(dk==1)*sum.I(zk,"<=",zk,1*(xk<=t0)*vk1*wk1*(dk==1))/sum.I(zk,"<=",zk,vk1),2,sum,na.rm=T)/apply((xk<=t0)*vk1*wk1*(dk==1),2,sum)
 			ap_event[2:(B+1),j] = ap[2:(B+1),j]*nn/sum((xk<=t0)*vk*wk)
 			# ap_event[2:(B+1),j] = ap[2:(B+1),j]/pi.list[j]
 		}	
@@ -212,14 +207,14 @@ APSurv <- function(stime,status,marker,t0.list,cut.values=NULL,method="none",alp
 				tt = c(t0,Ti[Ti<=t0])
 				Vi = rep(1,length(Ti));Wi = rep(0,length(Ti));tmpind = rank(tt)
 				Ghat.tt = summary(survfit(Surv(Ti,1-Di)~1, se.fit=F, type='fl', weights=Vi), sort(tt))$surv[tmpind]
-				Wi[Ti <= t0] = Di[Ti<=t0]/Ghat.tt[-1]; Wi[Ti >  t0] = 1/Ghat.tt[1]
+				Wi[Ti <= t0] = 1*(Di[Ti<=t0]!=0)/Ghat.tt[-1]; Wi[Ti >  t0] = 1/Ghat.tt[1]
 				wkc = Wi
 			}else{
 				wkc=weight
 			}
 			if(!is.null(cut.values)){
 				wk=wkc
-				
+				xk <- data_resam[,1,1]; zk <- data_resam[,3,1];
 				TPF[,j+1] = sum.I(scl,"<",zk,1*(xk<=t0)*wk*vk)/sum(1*(xk<=t0)*wk*vk) ## P(Y> cl|T<=t0)  
 				PPV[,j+1] = sum.I(scl,"<",zk,1*(xk<=t0)*wk*vk)/sum.I(scl,"<",zk,vk) ## P(T<=t0|Y> cl)
 			}
@@ -228,8 +223,8 @@ APSurv <- function(stime,status,marker,t0.list,cut.values=NULL,method="none",alp
 			for(k in 1:(B+1)){
 				wk=wkc[index[,k]]
 				xk <- data_resam[,1,k]; zk <- data_resam[,3,k]; dk <- data_resam[,2,k]
-				auc[k,j]= sum((0.5*sum.I(zk,"<=",zk,1*(xk<=t0)*wk*vk)+0.5*sum.I(zk,"<",zk,1*(xk<=t0)*wk*vk))*(xk>t0)*wk*vk)/(sum(vk*wk*(xk<=t0))*sum(vk*wk*(xk>t0))) 
-				ap[k,j] = sum(wk*vk*(xk<=t0)*sum.I(zk,"<=",zk,1*(xk<=t0)*vk*wk)/sum.I(zk,"<=",zk,vk),na.rm=T)/sum((xk<=t0)*vk*wk)
+				auc[k,j]= sum((0.5*sum.I(zk,"<=",zk,1*(xk<=t0)*wk*vk*(dk==1))+0.5*sum.I(zk,"<",zk,1*(xk<=t0)*wk*vk*(dk==1)))*(xk>t0)*wk*vk)/(sum(vk*wk*(xk<=t0)*(dk==1))*sum(vk*wk*(xk>t0)))
+				ap[k,j] = sum(wk*vk*(xk<=t0)*(dk==1)*sum.I(zk,"<=",zk,1*(xk<=t0)*vk*wk*(dk==1))/sum.I(zk,"<=",zk,vk),na.rm=T)/sum((xk<=t0)*vk*wk*(dk==1))
 				ap_event[k,j] = ap[k,j]*nn/sum((xk<=t0)*vk*wk)
 				# surv.out = survfit(Surv(xk,dk)~1)
 				# tt = surv.out$time
@@ -241,14 +236,11 @@ APSurv <- function(stime,status,marker,t0.list,cut.values=NULL,method="none",alp
 	}
 
 	####use survival to find the corresponding event rate r based on t0
-	fit1<-coxph(Surv(data0[,1],data0[,2])~1)
-	dfit1<-survfit(fit1)
-	tt<-dfit1$time
-	rr = 1-dfit1$surv
-	pi.list = t0.list*0
-	for (l in 1:length(t0.list)){
-		pi.list[l] = rr[which(tt>=t0.list[l])[1]]
-	}	
+	
+	cumi=cuminc(stime, status)
+	er=timepoints(cumi, times=t0.list)
+	pi.list <- er$est[1,]
+	
 	
 	auc_summary=array(0,dim=c(N_j,5))
 	ap_summary=array(0,dim=c(N_j,8))

@@ -9,7 +9,7 @@
 }
 \usage{
   APBinary(status, marker, cut.values = NULL,
-    method = "none", alpha = 0.95, B = 1000)
+    method = "none", alpha = 0.95, B = 1000, weight = NULL)
 }
 \arguments{
   \item{status}{Binary indicator, 1 indicates case / the
@@ -23,8 +23,8 @@
   positive fractions (TPF). The default value is NULL.}
 
   \item{method}{Method to obtain confidence intervals. The
-  default is method = "none", in which case only point estimates will be given without confidence intervals. 
-  If method= "perturbation", then perturbation based CI will be calculated. 
+  default is method = "none", in which case only point estimates will be given without confidence intervals.
+  If method= "perturbation", then perturbation based CI will be calculated.
   If method = "bootstrap", then nonparametric bootstrap based CI will be calculated.}
 
   \item{alpha}{Confidence level.  The default level is
@@ -32,6 +32,11 @@
 
   \item{B}{Number of resampling to obtain confidence
   interval. The default value is 1000.}
+  \item{weight}{Optional. The default weight is 1, same
+  object length as the "status" and "marker" object.
+  Users can use their own weights, and the length of
+  weight is required to be the same as the length of
+  status.}
 }
 \value{
   an object of class "APBinary" which is a list with
