@@ -15,10 +15,10 @@
   \item{status}{Binary indicator, 1 indicates case / the
   class of prediction interest and 0 otherwise.}
 
-  \item{marker}{Numeric risk score or marker value. Data
+  \item{marker}{Numeric risk score. Data
   can be continuous or ordinal.}
 
-  \item{cut.values}{marker values to use as a cut-off for
+  \item{cut.values}{risk score values to use as a cut-off for
   calculation of positive predictive values (PPV) and true
   positive fractions (TPF). The default value is NULL.}
 

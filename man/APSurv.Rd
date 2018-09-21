@@ -6,9 +6,7 @@
   for censored time to event data as well as their
   confidence intervals using the perturbation or the
   nonparametric bootstrap resampling method. The estimation
-  method is based on Yuan, Zhou, Li et al. (2016) A
-  Threshold-free Prospective Prediction Accuracy Measure
-  for Censored Time to Event Data.
+  method is based on Yuan, Y., Zhou, Q. M., Li, B., Cai, H., Chow, E. J., Armstrong, G. T. (2018). A threshold-free summary index of prediction accuracy for censored time to event data. Statistics in medicine, 37(10), 1671-1681.
 }
 \usage{
   APSurv(stime, status, marker, t0.list, cut.values = NULL,
@@ -19,23 +17,23 @@
   \item{stime}{Censored event time.}
 
   \item{status}{Binary indicator of censoring. 1 indicates
-  observing event, 0 otherwise.}
+  observing event of interest, 0 otherwise. Other values will be treated as competing risk event.}
 
-  \item{marker}{Numeric risk score or marker value. Data
+  \item{marker}{Numeric risk score. Data
   can be continuous or ordinal.}
 
   \item{t0.list}{Prediction time intervals of interest. It
   could be one numerical value or a vector of numerical
   values, which must be in the range of stime.}
 
-  \item{cut.values}{marker values to use as a cut-off for
+  \item{cut.values}{Risk score values to use as a cut-off for
   calculation of time-dependent positive predictive values
   (PPV) and true positive fractions (TPF). The default
   value is NULL.}
 
   \item{method}{Method to obtain confidence intervals. The
-  default is method = "none", in which case only point estimates will be given without confidence intervals. 
-  If method= "perturbation", then perturbation based CI will be calculated. 
+  default is method = "none", in which case only point estimates will be given without confidence intervals.
+  If method= "perturbation", then perturbation based CI will be calculated.
   If method = "bootstrap", then nonparametric bootstrap based CI will be calculated.}
 
   \item{alpha}{Confidence level. The default level is
@@ -86,11 +84,7 @@
   fractions at the unique risk score in the data.}
 }
 \references{
-  Yuan Y*, Zhou Q*, Li B, Chow E, Armstrong G. (2016) A
-  threshold-free prospective prediction accuracy measure
-  for censored time to event data.
-  http://arxiv.org/abs/1606.04172. arXiv:1606.04172v1
-  [stat.ME] (*:Co-first authors)
+  Yuan, Y., Zhou, Q. M., Li, B., Cai, H., Chow, E. J., Armstrong, G. T. (2018). A threshold-free summary index of prediction accuracy for censored time to event data. Statistics in medicine, 37(10), 1671-1681.
 
   Bingying Li (2015) Threshold-free Measure for Assessing
   the Performance of Risk Prediction with Censored Data,
@@ -103,7 +97,7 @@ t0.list=seq(from=min(mayo[,1]),to=max(mayo[,1]),length.out=5)[-c(1,5)]
 cut.values=seq(min(mayo[,3]),max(mayo[,3]),length.out=10)[-10]
 out <- APSurv(stime=mayo[,1],status=mayo[,2],marker=mayo[,3],
 	t0.list=t0.list,cut.values=cut.values,method='bootstrap',
-	alpha=0.90,B=1000,weight=rep(1,nrow(mayo)),Plot=FALSE)
+	alpha=0.90,B=500,weight=rep(1,nrow(mayo)),Plot=FALSE)
 out
 }
 

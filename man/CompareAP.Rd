@@ -34,8 +34,8 @@
   stime. It is set to be NULL if stime is NULL.}
 
   \item{method}{Method to obtain confidence intervals. The
-  default is method = "none", in which case only point estimates will be given without confidence intervals. 
-  If method= "perturbation", then perturbation based CI will be calculated. 
+  default is method = "none", in which case only point estimates will be given without confidence intervals.
+  If method= "perturbation", then perturbation based CI will be calculated.
   If method = "bootstrap", then nonparametric bootstrap based CI will be calculated.}
 
   \item{alpha}{Confidence level. The default level is
@@ -79,11 +79,7 @@
   well as their respective confidence intervals.}
 }
 \references{
-  Yuan Y*, Zhou Q*, Li B, Chow E, Armstrong G. (2016) A
-  threshold-free prospective prediction accuracy measure
-  for censored time to event data.
-  http://arxiv.org/abs/1606.04172. arXiv:1606.04172v1
-  [stat.ME] (*:Co-first authors)
+  Yuan, Y., Zhou, Q. M., Li, B., Cai, H., Chow, E. J., Armstrong, G. T. (2018). A threshold-free summary index of prediction accuracy for censored time to event data. Statistics in medicine, 37(10), 1671-1681.
 
   Yuan, Y., Su, W., and Zhu, M. (2015). Threshold-free
   measures for assessing the performance of medical
@@ -105,7 +101,7 @@ data(mayo)
 t0.list=seq(from=min(mayo[,1]),to=max(mayo[,1]),length.out=5)[-c(1,5)]
 out_survival <- CompareAP(status=mayo[,2],marker1=mayo[,3],
 	marker2=mayo[,4],stime=mayo[,1],t0.list=t0.list,
-	method='bootstrap',alpha=0.90,B=1000,
+	method='bootstrap',alpha=0.90,B=500,
 	weight=rep(1,nrow(mayo)),Plot=FALSE)
 out_survival
 }
